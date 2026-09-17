@@ -4,7 +4,7 @@ from typing import List
 
 from .lexer import Lexer
 from .parser import Parser
-from .symbolic import SymbolicEvaluator
+from .symbolic import SymbolicEvaluator, StringPoolUnpacker
 from .reconstruction import LuaWriter
 from .safety.resource_limits import VMLimits
 
@@ -25,27 +25,27 @@ class DeobfuscationPipeline:
         
         try:
             result.stages.append("Source validated")
-            lexer = Lexer(source)
+            
+            # 1. Run Static String Pool Unpacking First
+            unpacker = StringPoolUnpacker(source)
+            unpacked_source = unpacker.unpack()
+            result.stages.append("String-pool table decrypted")
+
+            lexer = Lexer(unpacked_source)
             result.stages.append("Lexer completed")
 
             parser = Parser(lexer.tokens)
             ast = parser.parse()
             result.stages.append("AST constructed")
 
-            result.stages.append("Constant analysis completed")
-            result.stages.append("String-pool analysis completed")
-            result.stages.append("Control-flow analysis completed")
-            
             evaluator = SymbolicEvaluator(self.limits)
             optimized_ast = evaluator.evaluate(ast)
             
-            result.stages.append("VM analysis completed")
-            result.stages.append("Symbolic recovery completed")
+            result.stages.append("VM constant folding completed")
 
             writer = LuaWriter()
             reconstructed = writer.write(optimized_ast)
             result.stages.append("Payload reconstruction completed")
-            result.stages.append("Lua cleanup completed")
 
             result.source = reconstructed
             result.complete = not evaluator.partial
