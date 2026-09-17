@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lua-deobfuscator
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.12.0
